@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.os.AsyncTask
 import android.os.Bundle
 import android.util.Log
 import android.widget.SearchView
@@ -15,13 +16,18 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.breweries.adapters.BreweriesAdapter
+import com.example.breweries.data.BreweryObject
 import com.example.breweries.databinding.ActivityMainBinding
 import com.example.breweries.retrofit.RetrofitInstance
 import com.google.gson.Gson
 import okhttp3.*
+import org.json.JSONArray
 import retrofit2.HttpException
 import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.*
+import kotlin.collections.ArrayList
 
 
 class MainActivity : AppCompatActivity() {
@@ -45,6 +51,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         context = this
+
 
         isLocationPermissionGranted()
         getLocation()
@@ -204,20 +211,64 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getAllBreweries() {
-        lifecycleScope.launchWhenCreated {
-            val response = try {
-                RetrofitInstance.api.getBreweries()
-            } catch (e: IOException) {
-                return@launchWhenCreated
-            } catch (e: HttpException) {
-                return@launchWhenCreated
+//        lifecycleScope.launchWhenCreated {
+//            val response = try {
+//                RetrofitInstance.api.getBreweries()
+//            } catch (e: IOException) {
+//                return@launchWhenCreated
+//            } catch (e: HttpException) {
+//                return@launchWhenCreated
+//            }
+//            if (response.isSuccessful && response.body() != null) {
+//                breweriesAdapter.breweries = response.body()!!
+//            } else {
+//                Log.e(TAG, "" + response.message())
+//            }
+//        }
+
+        AsyncTaskHandleJson().execute("https://api.openbrewerydb.org/breweries")
+
+
+    }
+    inner class AsyncTaskHandleJson : AsyncTask<String,String,String>(){
+        override fun doInBackground(vararg url: String?): String {
+            var text :String
+            val connection = URL(url[0]).openConnection() as HttpURLConnection
+            try {
+                connection.connect()
+                text = connection.inputStream.use {
+                    it.reader().use {
+                        reader -> reader.readText()
+                    }
+                }
+            }finally {
+                connection.disconnect()
             }
-            if (response.isSuccessful && response.body() != null) {
-                breweriesAdapter.breweries = response.body()!!
-            } else {
-                Log.e(TAG, "" + response.message())
-            }
+            return text
         }
+
+        override fun onPostExecute(result: String?) {
+            super.onPostExecute(result)
+            handleJson(result)
+        }
+
+    }
+    private fun handleJson(jsonString:String?){
+        val jsonArrayList = JSONArray(jsonString)
+        val list = ArrayList<BreweryObject>()
+        var i=0
+        while (i <jsonArrayList.length()){
+            val jsonObject = jsonArrayList.getJSONObject(i)
+            list.add(BreweryObject(jsonObject.getString("id"),jsonObject.getString("name"),jsonObject.getString("brewery_type"),jsonObject.getString("street"),jsonObject.getString("address_2")
+            ,jsonObject.getString("address_3"),jsonObject.getString("city"),jsonObject.getString("state"),jsonObject.getString("county_province"),jsonObject.getString("postal_code"),jsonObject.getString("country")
+            ,jsonObject.getString("longitude"),jsonObject.getString("latitude"),jsonObject.getString("phone"),jsonObject.getString("website_url"),jsonObject.getString("updated_at"),jsonObject.getString("created_at")
+            ))
+
+            i++
+        }
+        breweriesAdapter.breweries = list
+
+
     }
 
     private fun getBreweriesByCity(city: String) {

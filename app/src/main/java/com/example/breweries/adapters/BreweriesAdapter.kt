@@ -53,7 +53,7 @@ class BreweriesAdapter : RecyclerView.Adapter<BreweriesAdapter.BreweriesViewHold
             val brewery = breweries[position]
 
             name.text = brewery.name
-            if (brewery.street != null) {
+            if (brewery.street != "null") {
                 street.visibility = VISIBLE
                 street.text = brewery.street
             } else
@@ -61,10 +61,10 @@ class BreweriesAdapter : RecyclerView.Adapter<BreweriesAdapter.BreweriesViewHold
 
             city.text = brewery.city + " ,"
             state.text = brewery.state
-            if (MainActivity.deviceLatitude != null
-                && MainActivity.deviceLongitude != null
-                && brewery.latitude != null
-                && brewery.longitude != null
+            if (MainActivity.deviceLatitude != 0.0
+                && MainActivity.deviceLongitude != 0.0
+                && brewery.latitude != "null"
+                && brewery.longitude != "null"
             ) {
 
                 var distanceToMiles = getDistance(
