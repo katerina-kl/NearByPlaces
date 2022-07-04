@@ -267,25 +267,24 @@ class MainActivity : AppCompatActivity() {
             i++
         }
         breweriesAdapter.breweries = list
-
-
     }
 
     private fun getBreweriesByCity(city: String) {
-        lifecycleScope.launchWhenCreated {
-            val response = try {
-                RetrofitInstance.api.getBreweriesByCity(city)
-            } catch (e: IOException) {
-                return@launchWhenCreated
-            } catch (e: HttpException) {
-                return@launchWhenCreated
-            }
-            if (response.isSuccessful && response.body() != null) {
-                breweriesAdapter.breweries = response.body()!!
-            } else {
-                Log.e(TAG, "" + response.message())
-            }
-        }
+//        lifecycleScope.launchWhenCreated {
+//            val response = try {
+//                RetrofitInstance.api.getBreweriesByCity(city)
+//            } catch (e: IOException) {
+//                return@launchWhenCreated
+//            } catch (e: HttpException) {
+//                return@launchWhenCreated
+//            }
+//            if (response.isSuccessful && response.body() != null) {
+//                breweriesAdapter.breweries = response.body()!!
+//            } else {
+//                Log.e(TAG, "" + response.message())
+//            }
+//        }
+        AsyncTaskHandleJson().execute("https://api.openbrewerydb.org/breweries?by_city="+ city)
     }
 
     private fun setRecyclerView() = binding.recycleView.apply {
