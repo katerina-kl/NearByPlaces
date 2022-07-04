@@ -40,7 +40,6 @@ class MainActivity : AppCompatActivity() {
     private var locationByNetwork: Location? = null
     private lateinit var locationManager: LocationManager
     private var isConnected: Boolean = true
-
     companion object {
         var deviceLatitude: Double = 0.0
         var deviceLongitude: Double = 0.0
@@ -80,11 +79,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         context = this
+       var database = DataBaseHandler(this)
 
 
         isLocationPermissionGranted()
@@ -98,8 +99,18 @@ class MainActivity : AppCompatActivity() {
         }
         connectivityManager.requestNetwork(networkRequest, networkCallback)
         if (isConnected){
-            getAllBreweries()
+            getAllBreweries(database)
             Toast.makeText(context, "get all", Toast.LENGTH_SHORT).show()
+        }else
+        {
+          breweriesAdapter.breweries.toMutableList().clear()
+          val data = database.readData()
+            for (i in 0 until data.size) {
+                breweriesAdapter.breweries.forEach {
+                        breweriesAdapter.breweries.toMutableList()
+                            .add(it) // it adds all the objects ,that contain the city user is typing, to the list
+                }
+            }
         }
 
 
@@ -125,7 +136,17 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                     if (isConnected) {
-                        getBreweriesByCity(text) //does the api request for objects searched by city
+                        getBreweriesByCity(text,database) //does the api request for objects searched by city
+                        breweriesAdapter.notifyDataSetChanged()
+                    }else{
+                        breweriesAdapter.breweries.toMutableList().clear()
+                        val data = database.readData()
+                        for (i in 0 until data.size) {
+                            breweriesAdapter.breweries.forEach {
+                                breweriesAdapter.breweries.toMutableList()
+                                    .add(it) // it adds all the objects ,that contain the city user is typing, to the list
+                            }
+                        }
                         breweriesAdapter.notifyDataSetChanged()
                     }
 
@@ -134,7 +155,18 @@ class MainActivity : AppCompatActivity() {
                     if (isConnected) {
                         breweriesAdapter.breweries.toMutableList().clear()
                         breweriesAdapter.notifyDataSetChanged()
-                        getAllBreweries()
+                        getAllBreweries(database)
+                    }else
+                    {
+                        breweriesAdapter.breweries.toMutableList().clear()
+                        breweriesAdapter.notifyDataSetChanged()
+                        val data = database.readData()
+                        for (i in 0 until data.size) {
+                            breweriesAdapter.breweries.forEach {
+                                breweriesAdapter.breweries.toMutableList()
+                                    .add(it) // it adds all the objects ,that contain the city user is typing, to the list
+                            }
+                        }
                     }
 
                 }
@@ -259,57 +291,59 @@ class MainActivity : AppCompatActivity() {
         override fun onProviderDisabled(provider: String) {}
     }
 
-    private fun getAllBreweries() {
+    private fun getAllBreweries(database:DataBaseHandler) {
         CoroutineScope(Dispatchers.IO).launch {
             val rss = NetworkUtility.request("/breweries")
             withContext(Dispatchers.Main) {
                 // call to UI thread and parse response
-                handleJson(rss)
+                handleJson(rss,database)
 
             }
         }
     }
 
-    private fun handleJson(jsonString: String?) {
+    private fun handleJson(jsonString: String?,database: DataBaseHandler) {
+
         val jsonArrayList = JSONArray(jsonString)
         val list = ArrayList<BreweryObject>()
+        var breweryObject :BreweryObject
         var i = 0
         while (i < jsonArrayList.length()) {
             val jsonObject = jsonArrayList.getJSONObject(i)
-            list.add(
-                BreweryObject(
-                    jsonObject.getString("id"),
-                    jsonObject.getString("name"),
-                    jsonObject.getString("brewery_type"),
-                    jsonObject.getString("street"),
-                    jsonObject.getString("address_2"),
-                    jsonObject.getString("address_3"),
-                    jsonObject.getString("city"),
-                    jsonObject.getString("state"),
-                    jsonObject.getString("county_province"),
-                    jsonObject.getString("postal_code"),
-                    jsonObject.getString("country"),
-                    jsonObject.getString("longitude"),
-                    jsonObject.getString("latitude"),
-                    jsonObject.getString("phone"),
-                    jsonObject.getString("website_url"),
-                    jsonObject.getString("updated_at"),
-                    jsonObject.getString("created_at")
-                )
-            )
+            breweryObject= BreweryObject(
+                jsonObject.getString("id"),
+                jsonObject.getString("name"),
+                jsonObject.getString("brewery_type"),
+                jsonObject.getString("street"),
+                jsonObject.getString("address_2"),
+                jsonObject.getString("address_3"),
+                jsonObject.getString("city"),
+                jsonObject.getString("state"),
+                jsonObject.getString("county_province"),
+                jsonObject.getString("postal_code"),
+                jsonObject.getString("country"),
+                jsonObject.getString("longitude"),
+                jsonObject.getString("latitude"),
+                jsonObject.getString("phone"),
+                jsonObject.getString("website_url"),
+                jsonObject.getString("updated_at"),
+                jsonObject.getString("created_at"))
+            list.add(breweryObject)
+
+            database.insertData(breweryObject)
 
             i++
         }
         breweriesAdapter.breweries = list
     }
 
-    private fun getBreweriesByCity(city: String) {
+    private fun getBreweriesByCity(city: String,database: DataBaseHandler) {
 
         CoroutineScope(Dispatchers.IO).launch {
             val rss = NetworkUtility.request("/breweries?by_city=" + city)
             withContext(Dispatchers.Main) {
                 // call to UI thread and parse response
-                handleJson(rss)
+                handleJson(rss,database)
 
             }
         }

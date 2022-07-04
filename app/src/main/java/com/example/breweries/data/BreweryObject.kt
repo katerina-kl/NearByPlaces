@@ -17,5 +17,5 @@ data class BreweryObject(
         val phone: String,
         val website_url: String,
         val updated_at: String,
-        val created_at: String,
+        val created_at: String
 )
