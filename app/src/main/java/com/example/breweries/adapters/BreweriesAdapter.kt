@@ -61,8 +61,8 @@ class BreweriesAdapter : RecyclerView.Adapter<BreweriesAdapter.BreweriesViewHold
 
             city.text = brewery.city + " ,"
             state.text = brewery.state
-            if (MainActivity.deviceLatitude != 0.0
-                && MainActivity.deviceLongitude != 0.0
+            if (MainActivity.deviceLatitude != null
+                && MainActivity.deviceLongitude != null
                 && brewery.latitude != "null"
                 && brewery.longitude != "null"
             ) {
