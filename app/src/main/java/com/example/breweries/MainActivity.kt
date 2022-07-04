@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.os.AsyncTask
 import android.os.Bundle
 import android.widget.SearchView
 import androidx.appcompat.app.AppCompatActivity
@@ -15,10 +14,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.breweries.adapters.BreweriesAdapter
 import com.example.breweries.data.BreweryObject
 import com.example.breweries.databinding.ActivityMainBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.*
 import org.json.JSONArray
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -204,48 +205,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getAllBreweries() {
-//        lifecycleScope.launchWhenCreated {
-//            val response = try {
-//                RetrofitInstance.api.getBreweries()
-//            } catch (e: IOException) {
-//                return@launchWhenCreated
-//            } catch (e: HttpException) {
-//                return@launchWhenCreated
-//            }
-//            if (response.isSuccessful && response.body() != null) {
-//                breweriesAdapter.breweries = response.body()!!
-//            } else {
-//                Log.e(TAG, "" + response.message())
-//            }
-//        }
+        CoroutineScope(Dispatchers.IO).launch {
+            val rss = NetworkUtility.request("/breweries")
+            withContext(Dispatchers.Main) {
+                // call to UI thread and parse response
+                handleJson(rss)
 
-        AsyncTaskHandleJson().execute("https://api.openbrewerydb.org/breweries")
-
-
-    }
-
-    inner class AsyncTaskHandleJson : AsyncTask<String, String, String>() {
-        override fun doInBackground(vararg url: String?): String {
-            var text: String
-            val connection = URL(url[0]).openConnection() as HttpURLConnection
-            try {
-                connection.connect()
-                text = connection.inputStream.use {
-                    it.reader().use { reader ->
-                        reader.readText()
-                    }
-                }
-            } finally {
-                connection.disconnect()
             }
-            return text
         }
-
-        override fun onPostExecute(result: String?) {
-            super.onPostExecute(result)
-            handleJson(result)
-        }
-
     }
 
     private fun handleJson(jsonString: String?) {
@@ -282,21 +249,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getBreweriesByCity(city: String) {
-//        lifecycleScope.launchWhenCreated {
-//            val response = try {
-//                RetrofitInstance.api.getBreweriesByCity(city)
-//            } catch (e: IOException) {
-//                return@launchWhenCreated
-//            } catch (e: HttpException) {
-//                return@launchWhenCreated
-//            }
-//            if (response.isSuccessful && response.body() != null) {
-//                breweriesAdapter.breweries = response.body()!!
-//            } else {
-//                Log.e(TAG, "" + response.message())
-//            }
-//        }
-        AsyncTaskHandleJson().execute("https://api.openbrewerydb.org/breweries?by_city=" + city)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val rss = NetworkUtility.request("/breweries?by_city=" + city)
+            withContext(Dispatchers.Main) {
+                // call to UI thread and parse response
+                handleJson(rss)
+
+            }
+        }
+
     }
 
     private fun setRecyclerView() = binding.recycleView.apply {
