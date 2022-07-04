@@ -6,8 +6,15 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.os.Build
 import android.os.Bundle
 import android.widget.SearchView
+import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -32,6 +39,7 @@ class MainActivity : AppCompatActivity() {
     private var locationByGps: Location? = null
     private var locationByNetwork: Location? = null
     private lateinit var locationManager: LocationManager
+    private var isConnected: Boolean = true
 
     companion object {
         var deviceLatitude: Double = 0.0
@@ -39,6 +47,38 @@ class MainActivity : AppCompatActivity() {
         lateinit var context: Context
     }
 
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    val networkRequest = NetworkRequest.Builder()
+        .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+        .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
+        .build()
+
+    private val networkCallback = @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    object : ConnectivityManager.NetworkCallback() {
+        // network is available for use
+        override fun onAvailable(network: Network) {
+            isConnected=true
+            Toast.makeText(context, "connected", Toast.LENGTH_SHORT).show()
+            super.onAvailable(network)
+        }
+
+        // Network capabilities have changed for the network
+        override fun onCapabilitiesChanged(
+            network: Network,
+            networkCapabilities: NetworkCapabilities
+        ) {
+            super.onCapabilitiesChanged(network, networkCapabilities)
+            val unmetered = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+        }
+
+        // lost network connection
+        override fun onLost(network: Network) {
+            Toast.makeText(context, "not connected", Toast.LENGTH_SHORT).show()
+            isConnected=false
+            super.onLost(network)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,7 +90,18 @@ class MainActivity : AppCompatActivity() {
         isLocationPermissionGranted()
         getLocation()
         setRecyclerView()
-        getAllBreweries()
+
+        val connectivityManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            getSystemService(ConnectivityManager::class.java) as ConnectivityManager
+        } else {
+            TODO("VERSION.SDK_INT < M")
+        }
+        connectivityManager.requestNetwork(networkRequest, networkCallback)
+        if (isConnected){
+            getAllBreweries()
+            Toast.makeText(context, "get all", Toast.LENGTH_SHORT).show()
+        }
+
 
         binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener,
             androidx.appcompat.widget.SearchView.OnQueryTextListener {
@@ -73,14 +124,18 @@ class MainActivity : AppCompatActivity() {
                                 .add(it) // it adds all the objects ,that contain the city user is typing, to the list
                         }
                     }
-                    getBreweriesByCity(text) //does the api request for objects searched by city
-                    breweriesAdapter.notifyDataSetChanged()
+                    if (isConnected) {
+                        getBreweriesByCity(text) //does the api request for objects searched by city
+                        breweriesAdapter.notifyDataSetChanged()
+                    }
 
                 } else {
                     //it shows all objects when the search view in empty
-                    breweriesAdapter.breweries.toMutableList().clear()
-                    breweriesAdapter.notifyDataSetChanged()
-                    getAllBreweries()
+                    if (isConnected) {
+                        breweriesAdapter.breweries.toMutableList().clear()
+                        breweriesAdapter.notifyDataSetChanged()
+                        getAllBreweries()
+                    }
 
                 }
                 return false
