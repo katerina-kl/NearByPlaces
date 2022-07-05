@@ -1,15 +1,22 @@
 package com.example.breweries
 
 import android.Manifest
+import android.app.Dialog
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
+import android.util.Log
+import android.view.Window
+import android.widget.Button
+import android.widget.Switch
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.breweries.LocationPermission.Companion.LOCATION_REQUEST_CODE
 import com.example.breweries.adapters.BreweriesAdapter
 import com.example.breweries.data.BreweryObject
 import com.example.breweries.databinding.ActivityMainBinding
@@ -29,6 +36,7 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
     private var locationByGps: Location? = null
     private var locationByNetwork: Location? = null
     private lateinit var database: BreweryDBHelper
+    private lateinit var locationPermission: LocationPermission
     private lateinit var locationManager: LocationManager
 
     companion object {
@@ -40,9 +48,12 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        database = BreweryDBHelper(this)
 
-        isLocationPermissionGranted()
+        database = BreweryDBHelper(this)
+        locationPermission= LocationPermission()
+        locationPermission.setupPermissions(this)
+
+        //getLocation()
         setRecyclerView()
 
         if (NetworkUtility.isOnline(this)) {
@@ -58,29 +69,25 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
         binding.searchView.setOnQueryTextListener(this)
     }
 
-    private fun isLocationPermissionGranted(): Boolean {
-        //checks if the user has accepted the permission for the device location
-        return if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ),
-                1
-            )
-            false
-        } else {
-            getLocation()
-            true
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        Log.i("kati", "onRequestPermissionsResult: code "+requestCode)
+
+        when (requestCode) {
+            LOCATION_REQUEST_CODE -> {
+
+                if (grantResults.isEmpty() || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    locationPermission.showDialog(this)
+                    Log.i("kati", "onRequestPermissionsResult: ")
+                }
+            }
         }
+
     }
 
     private fun getLocation() {
@@ -239,7 +246,6 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
     }
 
     override fun onQueryTextChange(text: String?): Boolean {
-        isLocationPermissionGranted() //if the user has not accepted the permission asks again, to be able to search on the search bar
 
         breweriesAdapter.breweries.toMutableList().clear() // the list clears every time the user types
         val searchText = text!!.toLowerCase(Locale.getDefault())
