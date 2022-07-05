@@ -1,89 +1,187 @@
 package com.example.breweries
+
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
+import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
-import android.widget.Toast
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_ADDRESS_2
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_ADDRESS_3
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_BREWERY_TYPE
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_CITY
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_COUNTRY
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_COUNTY_PROVINCE
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_CREATED_AT
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_ID
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_LATITUDE
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_LONGTITUDE
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_NAME
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_PHONE
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_POSTAL_CODE
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_STATE
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_STREET
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_UPDATED_AT
+import com.example.breweries.DBContract.BreweryEntry.Companion.COL_WEBSITE_URL
+import com.example.breweries.DBContract.BreweryEntry.Companion.TABLE_NAME
 import com.example.breweries.data.BreweryObject
 
-val DATABASENAME = "MY DATABASE"
-val TABLENAME = "Breweries"
-val COL_ID = "id"
-val COL_NAME = "name"
-val COL_BREWERY_TYPE = "brewery_type"
-val COL_STREET = "street"
-val COL_ADDRESS_2 = "address_2"
-val COL_ADDRESS_3 = "address_3"
-val COL_CITY = "city"
-val COL_STATE = "state"
-val COL_COUNTY_PROVINCE = "county_province"
-val COL_POSTAL_CODE = "postal_code"
-val COL_COUNTRY = "country"
-val COL_LONGTITUDE = "longitude"
-val COL_LATITUDE = "latitude"
-val COL_PHONE = "phone"
-val COL_WEBSITE_URL= "website_url"
-val COL_UPDATED_AT = "updated_at"
-val COL_CREATED_AT = "created_at"
+class BreweryDBHelper(context: Context) :
+    SQLiteOpenHelper(
+        context,
+        DBContract.BreweryEntry.DATABASE_NAME,
+        null,
+        DBContract.BreweryEntry.DATABASE_VERSION
+    ) {
+    override fun onCreate(db: SQLiteDatabase) {
+        db.execSQL(SQL_CREATE_ENTRIES)
+    }
 
-class DataBaseHandler(var context: Context) : SQLiteOpenHelper(context, DATABASENAME, null,
-    1) {
-    override fun onCreate(db: SQLiteDatabase?) {
-        val createTable = "CREATE TABLE " + TABLENAME + " (" + COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," + COL_NAME + " VARCHAR(256)," + COL_BREWERY_TYPE + " VARCHAR(256)," + COL_STREET + " VARCHAR(256),"  + COL_ADDRESS_2 + " VARCHAR(256),"+ COL_ADDRESS_3 + " VARCHAR(256),"  + COL_CITY + " VARCHAR(256),"  + COL_STATE + " VARCHAR(256),"  + COL_COUNTY_PROVINCE + " VARCHAR(256),"  + COL_POSTAL_CODE + " VARCHAR(256),"+ COL_COUNTRY + " VARCHAR(256),"  + COL_LONGTITUDE + " VARCHAR(256),"  + COL_LATITUDE + " VARCHAR(256),"  + COL_PHONE + " VARCHAR(256),"  + COL_WEBSITE_URL + " VARCHAR(256),"  + COL_UPDATED_AT + " VARCHAR(256),"+ COL_CREATED_AT + " VARCHAR(256)"+ ")"
-        db?.execSQL(createTable)
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        // This database is only a cache for online data, so its upgrade policy is
+        // to simply to discard the data and start over
+        db.execSQL(SQL_DELETE_ENTRIES)
+        onCreate(db)
     }
-    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
-        //onCreate(db);
-    }
-    fun insertData(breweryObject: BreweryObject) {
-        val database = this.writableDatabase
-        val contentValues = ContentValues()
-        contentValues.put(COL_NAME, breweryObject.name)
-        contentValues.put(COL_BREWERY_TYPE, breweryObject.brewery_type)
-        contentValues.put(COL_STREET, breweryObject.street)
-        contentValues.put(COL_ADDRESS_2, breweryObject.address_2)
-        contentValues.put(COL_ADDRESS_3, breweryObject.address_3)
-        contentValues.put(COL_CITY, breweryObject.city)
-        contentValues.put(COL_STATE, breweryObject.state)
-        contentValues.put(COL_COUNTY_PROVINCE, breweryObject.county_province)
-        contentValues.put(COL_POSTAL_CODE, breweryObject.postal_code)
-        contentValues.put(COL_COUNTRY, breweryObject.country)
-        contentValues.put(COL_LONGTITUDE, breweryObject.longitude)
-        contentValues.put(COL_LATITUDE, breweryObject.latitude)
-        contentValues.put(COL_PHONE, breweryObject.phone)
-        contentValues.put(COL_WEBSITE_URL, breweryObject.website_url)
-        contentValues.put(COL_UPDATED_AT, breweryObject.updated_at)
-        contentValues.put(COL_CREATED_AT, breweryObject.created_at)
 
-        val result = database.insert(TABLENAME, null, contentValues)
-        if (result == (0).toLong()) {
-            Toast.makeText(context, "Failed", Toast.LENGTH_SHORT).show()
-        }
-        else {
-            Toast.makeText(context, "Success", Toast.LENGTH_SHORT).show()
-        }
+    override fun onDowngrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        onUpgrade(db, oldVersion, newVersion)
     }
+
+    @Throws(SQLiteConstraintException::class)
+    fun insertBrewery(breweryObject: BreweryObject): Boolean {
+        // Gets the data repository in write mode
+        val db = writableDatabase
+
+        // Create a new map of values, where column names are the keys
+        val values = ContentValues()
+        values.put(COL_NAME, breweryObject.name)
+        values.put(COL_BREWERY_TYPE, breweryObject.brewery_type)
+        values.put(COL_STREET, breweryObject.street)
+        values.put(COL_ADDRESS_2, breweryObject.address_2)
+        values.put(COL_ADDRESS_3, breweryObject.address_3)
+        values.put(COL_CITY, breweryObject.city)
+        values.put(COL_STATE, breweryObject.state)
+        values.put(COL_COUNTY_PROVINCE, breweryObject.county_province)
+        values.put(COL_POSTAL_CODE, breweryObject.postal_code)
+        values.put(COL_COUNTRY, breweryObject.country)
+        values.put(COL_LONGTITUDE, breweryObject.longitude)
+        values.put(COL_LATITUDE, breweryObject.latitude)
+        values.put(COL_PHONE, breweryObject.phone)
+        values.put(COL_WEBSITE_URL, breweryObject.website_url)
+        values.put(COL_UPDATED_AT, breweryObject.updated_at)
+        values.put(COL_CREATED_AT, breweryObject.created_at)
+
+        // Insert the new row, returning the primary key value of the new row
+        val newRowId = db.insert(TABLE_NAME, null, values)
+
+        return true
+    }
+
     @SuppressLint("Range")
-    fun readData(): MutableList<BreweryObject> {
-        val list: MutableList<BreweryObject> = ArrayList()
-        val db = this.readableDatabase
-        val query = "Select * from $TABLENAME"
-        val result = db.rawQuery(query, null)
-        if (result.moveToFirst()) {
-            do {
-                val breweryObject = BreweryObject(result.getString(result.getColumnIndex(COL_ID)),result.getString(result.getColumnIndex(COL_NAME)),result.getString(result.getColumnIndex(COL_BREWERY_TYPE))
-                    ,result.getString(result.getColumnIndex(COL_STREET)),result.getString(result.getColumnIndex(COL_ADDRESS_2)),result.getString(result.getColumnIndex(COL_ADDRESS_3)),result.getString(result.getColumnIndex(COL_CITY))
-                    ,result.getString(result.getColumnIndex(COL_STATE)),result.getString(result.getColumnIndex(COL_COUNTY_PROVINCE)),result.getString(result.getColumnIndex(COL_POSTAL_CODE))
-                    ,result.getString(result.getColumnIndex(COL_COUNTRY)),result.getString(result.getColumnIndex(COL_LONGTITUDE)),result.getString(result.getColumnIndex(COL_LATITUDE))
-                    ,result.getString(result.getColumnIndex(COL_PHONE)),result.getString(result.getColumnIndex(COL_WEBSITE_URL)),result.getString(result.getColumnIndex(COL_UPDATED_AT)),result.getString(result.getColumnIndex(COL_CREATED_AT))
+    fun readBreweriesByCity(cityName: String): ArrayList<BreweryObject> {
+        val breweries = ArrayList<BreweryObject>()
+        val db = writableDatabase
+        var cursor: Cursor? = null
+        try {
+            cursor = db.rawQuery("Select * from breweries where city like '$cityName%'", null)
+        } catch (e: SQLiteException) {
+            // if table not yet present, create it
+            db.execSQL(SQL_CREATE_ENTRIES)
+            return ArrayList()
+        }
+
+        if (cursor!!.moveToFirst()) {
+            while (!cursor.isAfterLast) {
+                val breweryObject = BreweryObject(
+                    cursor.getString(cursor.getColumnIndex(COL_ID)),
+                    cursor.getString(cursor.getColumnIndex(COL_NAME)),
+                    cursor.getString(cursor.getColumnIndex(COL_BREWERY_TYPE)),
+                    cursor.getString(cursor.getColumnIndex(COL_STREET)),
+                    cursor.getString(cursor.getColumnIndex(COL_ADDRESS_2)),
+                    cursor.getString(cursor.getColumnIndex(COL_ADDRESS_3)),
+                    cursor.getString(cursor.getColumnIndex(COL_CITY)),
+                    cursor.getString(cursor.getColumnIndex(COL_STATE)),
+                    cursor.getString(cursor.getColumnIndex(COL_COUNTY_PROVINCE)),
+                    cursor.getString(cursor.getColumnIndex(COL_POSTAL_CODE)),
+                    cursor.getString(cursor.getColumnIndex(COL_COUNTRY)),
+                    cursor.getString(cursor.getColumnIndex(COL_LONGTITUDE)),
+                    cursor.getString(cursor.getColumnIndex(COL_LATITUDE)),
+                    cursor.getString(cursor.getColumnIndex(COL_PHONE)),
+                    cursor.getString(cursor.getColumnIndex(COL_WEBSITE_URL)),
+                    cursor.getString(cursor.getColumnIndex(COL_UPDATED_AT)),
+                    cursor.getString(cursor.getColumnIndex(COL_CREATED_AT))
                 )
 
-
-                list.add(breweryObject)
+                breweries.add(breweryObject)
+                cursor.moveToNext()
             }
-            while (result.moveToNext())
         }
-        return list
+        return breweries
     }
+
+    @SuppressLint("Range")
+    fun readAllBreweries(): ArrayList<BreweryObject> {
+        val breweries = ArrayList<BreweryObject>()
+        val db = writableDatabase
+        var cursor: Cursor? = null
+        try {
+            cursor = db.rawQuery("select * from " + TABLE_NAME, null)
+        } catch (e: SQLiteException) {
+            db.execSQL(SQL_CREATE_ENTRIES)
+            return ArrayList()
+        }
+
+        if (cursor!!.moveToFirst()) {
+            while (!cursor.isAfterLast) {
+                val breweryObject = BreweryObject(
+                    cursor.getString(cursor.getColumnIndex(COL_ID)),
+                    cursor.getString(cursor.getColumnIndex(COL_NAME)),
+                    cursor.getString(cursor.getColumnIndex(COL_BREWERY_TYPE)),
+                    cursor.getString(cursor.getColumnIndex(COL_STREET)),
+                    cursor.getString(cursor.getColumnIndex(COL_ADDRESS_2)),
+                    cursor.getString(cursor.getColumnIndex(COL_ADDRESS_3)),
+                    cursor.getString(cursor.getColumnIndex(COL_CITY)),
+                    cursor.getString(cursor.getColumnIndex(COL_STATE)),
+                    cursor.getString(cursor.getColumnIndex(COL_COUNTY_PROVINCE)),
+                    cursor.getString(cursor.getColumnIndex(COL_POSTAL_CODE)),
+                    cursor.getString(cursor.getColumnIndex(COL_COUNTRY)),
+                    cursor.getString(cursor.getColumnIndex(COL_LONGTITUDE)),
+                    cursor.getString(cursor.getColumnIndex(COL_LATITUDE)),
+                    cursor.getString(cursor.getColumnIndex(COL_PHONE)),
+                    cursor.getString(cursor.getColumnIndex(COL_WEBSITE_URL)),
+                    cursor.getString(cursor.getColumnIndex(COL_UPDATED_AT)),
+                    cursor.getString(cursor.getColumnIndex(COL_CREATED_AT))
+                )
+
+                breweries.add(breweryObject)
+                cursor.moveToNext()
+            }
+        }
+        return breweries
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return javaClass.hashCode()
+    }
+
+    companion object {
+        // If you change the database schema, you must increment the database version.
+
+        private val SQL_CREATE_ENTRIES =
+            "CREATE TABLE $TABLE_NAME ($COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,$COL_NAME VARCHAR(256),$COL_BREWERY_TYPE VARCHAR(256),$COL_STREET VARCHAR(256),$COL_ADDRESS_2 VARCHAR(256),$COL_ADDRESS_3 VARCHAR(256),$COL_CITY VARCHAR(256),$COL_STATE VARCHAR(256),$COL_COUNTY_PROVINCE VARCHAR(256),$COL_POSTAL_CODE VARCHAR(256),$COL_COUNTRY VARCHAR(256),$COL_LONGTITUDE VARCHAR(256),$COL_LATITUDE VARCHAR(256),$COL_PHONE VARCHAR(256),$COL_WEBSITE_URL VARCHAR(256),$COL_UPDATED_AT VARCHAR(256),$COL_CREATED_AT VARCHAR(256))"
+
+
+        private val SQL_DELETE_ENTRIES =
+            "DROP TABLE IF EXISTS " + TABLE_NAME
+    }
+
 }

@@ -6,15 +6,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
-import android.os.Build
 import android.os.Bundle
-import android.widget.SearchView
-import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -25,172 +17,63 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.*
 import org.json.JSONArray
 import java.util.*
-import kotlin.collections.ArrayList
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.OnQueryTextListener {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var breweriesAdapter: BreweriesAdapter
     private var currentLocation: Location? = null
     private var locationByGps: Location? = null
     private var locationByNetwork: Location? = null
+    private lateinit var database: BreweryDBHelper
     private lateinit var locationManager: LocationManager
-    private var isConnected: Boolean = true
+
     companion object {
         var deviceLatitude: Double = 0.0
         var deviceLongitude: Double = 0.0
-        lateinit var context: Context
     }
-
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    val networkRequest = NetworkRequest.Builder()
-        .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-        .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-        .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
-        .build()
-
-    private val networkCallback = @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    object : ConnectivityManager.NetworkCallback() {
-        // network is available for use
-        override fun onAvailable(network: Network) {
-            isConnected=true
-            Toast.makeText(context, "connected", Toast.LENGTH_SHORT).show()
-            super.onAvailable(network)
-        }
-
-        // Network capabilities have changed for the network
-        override fun onCapabilitiesChanged(
-            network: Network,
-            networkCapabilities: NetworkCapabilities
-        ) {
-            super.onCapabilitiesChanged(network, networkCapabilities)
-            val unmetered = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
-        }
-
-        // lost network connection
-        override fun onLost(network: Network) {
-            Toast.makeText(context, "not connected", Toast.LENGTH_SHORT).show()
-            isConnected=false
-            super.onLost(network)
-        }
-    }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        context = this
-       var database = DataBaseHandler(this)
-
+        database = BreweryDBHelper(this)
 
         isLocationPermissionGranted()
         getLocation()
         setRecyclerView()
 
-        val connectivityManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            getSystemService(ConnectivityManager::class.java) as ConnectivityManager
-        } else {
-            TODO("VERSION.SDK_INT < M")
-        }
-        connectivityManager.requestNetwork(networkRequest, networkCallback)
-        if (isConnected){
+        if (NetworkUtility.isOnline(this)) {
             getAllBreweries(database)
-            Toast.makeText(context, "get all", Toast.LENGTH_SHORT).show()
-        }else
-        {
-          breweriesAdapter.breweries.toMutableList().clear()
-          val data = database.readData()
-            for (i in 0 until data.size) {
-                breweriesAdapter.breweries.forEach {
-                        breweriesAdapter.breweries.toMutableList()
-                            .add(it) // it adds all the objects ,that contain the city user is typing, to the list
-                }
-            }
+        } else {
+            breweriesAdapter.breweries.toMutableList().clear()
+            val data = database.readAllBreweries()
+
+            breweriesAdapter.breweries = data.toList()
+            breweriesAdapter.notifyDataSetChanged()
         }
 
-
-        binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener,
-            androidx.appcompat.widget.SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(text: String?): Boolean {
-                binding.searchView.clearFocus()
-                return false
-            }
-
-            override fun onQueryTextChange(text: String?): Boolean {
-                isLocationPermissionGranted() //if the user has not accepted the permission asks again, to be able to search on the search bar
-
-                breweriesAdapter.breweries.toMutableList()
-                    .clear() // the list clears every time the user types
-                val searchText = text!!.toLowerCase(Locale.getDefault())
-                if (searchText.isNotEmpty()) {
-                    breweriesAdapter.breweries.forEach {
-
-                        if (it.city.toLowerCase(Locale.getDefault()).contains(searchText)) {
-                            breweriesAdapter.breweries.toMutableList()
-                                .add(it) // it adds all the objects ,that contain the city user is typing, to the list
-                        }
-                    }
-                    if (isConnected) {
-                        getBreweriesByCity(text,database) //does the api request for objects searched by city
-                        breweriesAdapter.notifyDataSetChanged()
-                    }else{
-                        breweriesAdapter.breweries.toMutableList().clear()
-                        val data = database.readData()
-                        for (i in 0 until data.size) {
-                            breweriesAdapter.breweries.forEach {
-                                breweriesAdapter.breweries.toMutableList()
-                                    .add(it) // it adds all the objects ,that contain the city user is typing, to the list
-                            }
-                        }
-                        breweriesAdapter.notifyDataSetChanged()
-                    }
-
-                } else {
-                    //it shows all objects when the search view in empty
-                    if (isConnected) {
-                        breweriesAdapter.breweries.toMutableList().clear()
-                        breweriesAdapter.notifyDataSetChanged()
-                        getAllBreweries(database)
-                    }else
-                    {
-                        breweriesAdapter.breweries.toMutableList().clear()
-                        breweriesAdapter.notifyDataSetChanged()
-                        val data = database.readData()
-                        for (i in 0 until data.size) {
-                            breweriesAdapter.breweries.forEach {
-                                breweriesAdapter.breweries.toMutableList()
-                                    .add(it) // it adds all the objects ,that contain the city user is typing, to the list
-                            }
-                        }
-                    }
-
-                }
-                return false
-            }
-        })
-
+        binding.searchView.setOnQueryTextListener(this)
     }
 
     private fun isLocationPermissionGranted(): Boolean {
         //checks if the user has accepted the permission for the device location
         return if (ActivityCompat.checkSelfPermission(
                 this,
-                android.Manifest.permission.ACCESS_COARSE_LOCATION
+                Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
                 this,
-                android.Manifest.permission.ACCESS_FINE_LOCATION
+                Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(
-                    android.Manifest.permission.ACCESS_FINE_LOCATION,
-                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
                 ),
                 1
             )
@@ -216,8 +99,8 @@ class MainActivity : AppCompatActivity() {
                 ActivityCompat.requestPermissions(
                     this,
                     arrayOf(
-                        android.Manifest.permission.ACCESS_FINE_LOCATION,
-                        android.Manifest.permission.ACCESS_COARSE_LOCATION
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
                     ),
                     1
                 )
@@ -291,26 +174,24 @@ class MainActivity : AppCompatActivity() {
         override fun onProviderDisabled(provider: String) {}
     }
 
-    private fun getAllBreweries(database:DataBaseHandler) {
+    private fun getAllBreweries(database: BreweryDBHelper) {
         CoroutineScope(Dispatchers.IO).launch {
             val rss = NetworkUtility.request("/breweries")
             withContext(Dispatchers.Main) {
                 // call to UI thread and parse response
-                handleJson(rss,database)
-
+                handleJson(rss, database)
             }
         }
     }
 
-    private fun handleJson(jsonString: String?,database: DataBaseHandler) {
-
+    private fun handleJson(jsonString: String?, database: BreweryDBHelper) {
         val jsonArrayList = JSONArray(jsonString)
         val list = ArrayList<BreweryObject>()
-        var breweryObject :BreweryObject
+        var breweryObject: BreweryObject
         var i = 0
         while (i < jsonArrayList.length()) {
             val jsonObject = jsonArrayList.getJSONObject(i)
-            breweryObject= BreweryObject(
+            breweryObject = BreweryObject(
                 jsonObject.getString("id"),
                 jsonObject.getString("name"),
                 jsonObject.getString("brewery_type"),
@@ -327,24 +208,22 @@ class MainActivity : AppCompatActivity() {
                 jsonObject.getString("phone"),
                 jsonObject.getString("website_url"),
                 jsonObject.getString("updated_at"),
-                jsonObject.getString("created_at"))
+                jsonObject.getString("created_at")
+            )
             list.add(breweryObject)
-
-            database.insertData(breweryObject)
-
+            database.insertBrewery(breweryObject)
             i++
         }
         breweriesAdapter.breweries = list
     }
 
-    private fun getBreweriesByCity(city: String,database: DataBaseHandler) {
+    private fun getBreweriesByCity(city: String, database: BreweryDBHelper) {
 
         CoroutineScope(Dispatchers.IO).launch {
-            val rss = NetworkUtility.request("/breweries?by_city=" + city)
+            val rss = NetworkUtility.request("/breweries?by_city=$city")
             withContext(Dispatchers.Main) {
                 // call to UI thread and parse response
-                handleJson(rss,database)
-
+                handleJson(rss, database)
             }
         }
 
@@ -356,4 +235,47 @@ class MainActivity : AppCompatActivity() {
         layoutManager = LinearLayoutManager(this@MainActivity)
     }
 
+    override fun onQueryTextSubmit(query: String?): Boolean {
+        return false
+    }
+
+    override fun onQueryTextChange(text: String?): Boolean {
+        isLocationPermissionGranted() //if the user has not accepted the permission asks again, to be able to search on the search bar
+
+        breweriesAdapter.breweries.toMutableList()
+            .clear() // the list clears every time the user types
+        val searchText = text!!.toLowerCase(Locale.getDefault())
+        if (searchText.isNotEmpty()) {
+            breweriesAdapter.breweries.forEach {
+                if (it.city.toLowerCase(Locale.getDefault()).contains(searchText)) {
+                    breweriesAdapter.breweries.toMutableList()
+                        .add(it) // it adds all the objects ,that contain the city brewery is typing, to the list
+                }
+            }
+            breweriesAdapter.breweries.toMutableList().clear()
+            if (NetworkUtility.isOnline(applicationContext)) {
+                getBreweriesByCity(
+                    text,
+                    database
+                ) //does the api request for objects searched by city
+            } else {
+                val data = database.readBreweriesByCity(text)
+                breweriesAdapter.breweries = data.toList()
+
+            }
+            breweriesAdapter.notifyDataSetChanged()
+
+        } else {
+            //it shows all objects when the search view in empty
+            breweriesAdapter.breweries.toMutableList().clear()
+            if (NetworkUtility.isOnline(applicationContext)) {
+                getAllBreweries(database)
+            } else {
+                val data = database.readAllBreweries()
+                breweriesAdapter.breweries = data.toList()
+            }
+            breweriesAdapter.notifyDataSetChanged()
+        }
+        return false
+    }
 }
