@@ -10,7 +10,8 @@ import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.example.breweries.BreweryDetails
-import com.example.breweries.MainActivity
+import com.example.breweries.LocationPermission.Companion.deviceLatitude
+import com.example.breweries.LocationPermission.Companion.deviceLongitude
 import com.example.breweries.data.BreweryObject
 import com.example.breweries.databinding.BreweryLayoutBinding
 import com.google.gson.Gson
@@ -61,15 +62,15 @@ class BreweriesAdapter : RecyclerView.Adapter<BreweriesAdapter.BreweriesViewHold
 
             city.text = brewery.city + " ,"
             state.text = brewery.state
-            if (MainActivity.deviceLatitude != 0.0
-                && MainActivity.deviceLongitude != 0.0
+            if (deviceLatitude != 0.0
+                && deviceLongitude != 0.0
                 && brewery.latitude != "null"
                 && brewery.longitude != "null"
             ) {
 
                 var distanceToMiles = getDistance(
-                    MainActivity.deviceLatitude,
-                    MainActivity.deviceLongitude,
+                    deviceLatitude,
+                    deviceLongitude,
                     brewery.latitude.toDouble(),
                     brewery.longitude.toDouble()
                 ).toDouble() * 0.000621 // with * 0.000621 i converted it from meters to miles

@@ -1,20 +1,9 @@
 package com.example.breweries
 
-import android.Manifest
-import android.app.Dialog
-import android.content.Context
 import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
 import android.os.Bundle
 import android.util.Log
-import android.view.Window
-import android.widget.Button
-import android.widget.Switch
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.breweries.LocationPermission.Companion.LOCATION_REQUEST_CODE
 import com.example.breweries.adapters.BreweriesAdapter
@@ -32,17 +21,10 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var breweriesAdapter: BreweriesAdapter
-    private var currentLocation: Location? = null
-    private var locationByGps: Location? = null
-    private var locationByNetwork: Location? = null
+
     private lateinit var database: BreweryDBHelper
     private lateinit var locationPermission: LocationPermission
-    private lateinit var locationManager: LocationManager
 
-    companion object {
-        var deviceLatitude: Double = 0.0
-        var deviceLongitude: Double = 0.0
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,10 +32,14 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
         setContentView(binding.root)
 
         database = BreweryDBHelper(this)
-        locationPermission= LocationPermission()
+        locationPermission = LocationPermission()
         locationPermission.setupPermissions(this)
+        if (locationPermission.permissionIsGranted(this)){
+            setupUi()
+        }
 
-        //getLocation()
+    }
+    fun setupUi(){
         setRecyclerView()
 
         if (NetworkUtility.isOnline(this)) {
@@ -76,110 +62,20 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
-        Log.i("kati", "onRequestPermissionsResult: code "+requestCode)
-
         when (requestCode) {
             LOCATION_REQUEST_CODE -> {
 
                 if (grantResults.isEmpty() || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                     locationPermission.showDialog(this)
-                    Log.i("kati", "onRequestPermissionsResult: ")
+                } else {
+                    locationPermission.getLocation(this)
+                    setupUi()
                 }
             }
         }
 
     }
 
-    private fun getLocation() {
-        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val hasGps = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-        val hasNetwork = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-        if (hasGps) {
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    ),
-                    1
-                )
-                return
-            }
-
-            locationManager.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER,
-                5000,
-                0F,
-                gpsLocationListener
-            )//updates the location every 5000 ms (gps)
-        }
-
-        if (hasNetwork) {
-            locationManager.requestLocationUpdates(
-                LocationManager.NETWORK_PROVIDER,
-                5000,
-                0F,
-                networkLocationListener
-            )//updates the location every 5000 ms (network)
-
-        }
-
-        val lastKnownLocationByGps =
-            locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-
-        lastKnownLocationByGps?.let {
-            locationByGps = lastKnownLocationByGps
-        }
-
-        val lastKnownLocationByNetwork =
-            locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-
-        lastKnownLocationByNetwork?.let {
-            locationByNetwork = lastKnownLocationByNetwork
-        }
-
-        if (locationByNetwork != null) {
-            //initialize the current location
-            currentLocation = locationByNetwork
-            deviceLatitude = currentLocation!!.latitude
-            deviceLongitude = currentLocation!!.longitude
-            if (locationByGps != null) {
-                if (locationByGps!!.accuracy > locationByNetwork!!.accuracy) {
-                    currentLocation = locationByGps
-                    deviceLatitude = currentLocation!!.latitude
-                    deviceLongitude = currentLocation!!.longitude
-                }
-            }
-        }
-    }
-
-    private val gpsLocationListener: LocationListener = object : LocationListener {
-        override fun onLocationChanged(location: Location) {
-            locationByGps = location
-        }
-
-        override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {}
-        override fun onProviderEnabled(provider: String) {}
-        override fun onProviderDisabled(provider: String) {}
-    }
-
-    private val networkLocationListener: LocationListener = object : LocationListener {
-        override fun onLocationChanged(location: Location) {
-            locationByNetwork = location
-        }
-
-        override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {}
-        override fun onProviderEnabled(provider: String) {}
-        override fun onProviderDisabled(provider: String) {}
-    }
 
     private fun getAllBreweries(database: BreweryDBHelper) {
         CoroutineScope(Dispatchers.IO).launch {
@@ -247,7 +143,8 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
 
     override fun onQueryTextChange(text: String?): Boolean {
 
-        breweriesAdapter.breweries.toMutableList().clear() // the list clears every time the user types
+        breweriesAdapter.breweries.toMutableList()
+            .clear() // the list clears every time the user types
         val searchText = text!!.toLowerCase(Locale.getDefault())
         if (searchText.isNotEmpty()) {
             if (NetworkUtility.isOnline(applicationContext)) {
