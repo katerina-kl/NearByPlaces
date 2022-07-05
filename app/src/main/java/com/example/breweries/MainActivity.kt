@@ -43,7 +43,6 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
         database = BreweryDBHelper(this)
 
         isLocationPermissionGranted()
-        getLocation()
         setRecyclerView()
 
         if (NetworkUtility.isOnline(this)) {
@@ -79,6 +78,7 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
             )
             false
         } else {
+            getLocation()
             true
         }
     }
@@ -226,7 +226,6 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
                 handleJson(rss, database)
             }
         }
-
     }
 
     private fun setRecyclerView() = binding.recycleView.apply {
@@ -242,17 +241,9 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
     override fun onQueryTextChange(text: String?): Boolean {
         isLocationPermissionGranted() //if the user has not accepted the permission asks again, to be able to search on the search bar
 
-        breweriesAdapter.breweries.toMutableList()
-            .clear() // the list clears every time the user types
+        breweriesAdapter.breweries.toMutableList().clear() // the list clears every time the user types
         val searchText = text!!.toLowerCase(Locale.getDefault())
         if (searchText.isNotEmpty()) {
-            breweriesAdapter.breweries.forEach {
-                if (it.city.toLowerCase(Locale.getDefault()).contains(searchText)) {
-                    breweriesAdapter.breweries.toMutableList()
-                        .add(it) // it adds all the objects ,that contain the city brewery is typing, to the list
-                }
-            }
-            breweriesAdapter.breweries.toMutableList().clear()
             if (NetworkUtility.isOnline(applicationContext)) {
                 getBreweriesByCity(
                     text,
@@ -261,7 +252,6 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
             } else {
                 val data = database.readBreweriesByCity(text)
                 breweriesAdapter.breweries = data.toList()
-
             }
             breweriesAdapter.notifyDataSetChanged()
 

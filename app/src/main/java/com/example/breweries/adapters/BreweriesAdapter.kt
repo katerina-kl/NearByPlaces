@@ -61,15 +61,15 @@ class BreweriesAdapter : RecyclerView.Adapter<BreweriesAdapter.BreweriesViewHold
 
             city.text = brewery.city + " ,"
             state.text = brewery.state
-            if (MainActivity.deviceLatitude != null
-                && MainActivity.deviceLongitude != null
+            if (MainActivity.deviceLatitude != 0.0
+                && MainActivity.deviceLongitude != 0.0
                 && brewery.latitude != "null"
                 && brewery.longitude != "null"
             ) {
 
                 var distanceToMiles = getDistance(
-                    MainActivity.Companion.deviceLatitude,
-                    MainActivity.Companion.deviceLongitude,
+                    MainActivity.deviceLatitude,
+                    MainActivity.deviceLongitude,
                     brewery.latitude.toDouble(),
                     brewery.longitude.toDouble()
                 ).toDouble() * 0.000621 // with * 0.000621 i converted it from meters to miles
