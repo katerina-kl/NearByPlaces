@@ -33,6 +33,7 @@
                 android:layout_gravity="center"
                 android:backgroundTint="@color/colorPrimaryDark"/>
             <TextView
+                android:id="@+id/textViewName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="10dp"
@@ -51,6 +52,7 @@
                 android:textSize="18sp" />
 
             <TextView
+                android:id="@+id/textViewStreet"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="10dp"
@@ -69,6 +71,7 @@
                 android:textSize="18sp" />
 
             <TextView
+                android:id="@+id/textViewCity"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="10dp"
@@ -86,6 +89,7 @@
                 android:textSize="18sp" />
 
             <TextView
+                android:id="@+id/textViewState"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="10dp"
@@ -103,6 +107,7 @@
                 android:textSize="18sp" />
 
             <TextView
+                android:id="@+id/textViewDistance"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="10dp"

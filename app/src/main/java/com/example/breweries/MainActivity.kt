@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
         }
 
     }
-    fun setupUi(){
+    private fun setupUi(){
         setRecyclerView()
 
         if (NetworkUtility.isOnline(this)) {
