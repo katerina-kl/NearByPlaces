@@ -18,6 +18,7 @@ class NetworkUtility {
     companion object {
 
         suspend fun request(endpoint: String): String {
+            //makes a network request
             return suspendCancellableCoroutine { continuation ->
                 try {
                     val reader: BufferedReader
@@ -50,6 +51,7 @@ class NetworkUtility {
         }
 
         fun isOnline(context: Context): Boolean {
+            //checks connectivity
             val connectivityManager =
                 context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val capabilities =

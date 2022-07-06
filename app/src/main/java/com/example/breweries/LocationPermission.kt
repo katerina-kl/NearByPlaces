@@ -31,12 +31,13 @@ class LocationPermission : AppCompatActivity() {
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
 
     fun setupPermissions(context: Context) {
+        //check if the permissions are granted
         if (ActivityCompat.checkSelfPermission(
                 context,
-                android.Manifest.permission.ACCESS_COARSE_LOCATION
+                Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
                 context,
-                android.Manifest.permission.ACCESS_FINE_LOCATION
+                Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             makeRequest(context)
@@ -46,26 +47,27 @@ class LocationPermission : AppCompatActivity() {
     fun permissionIsGranted(context: Context): Boolean {
         return !(ActivityCompat.checkSelfPermission(
             context,
-            android.Manifest.permission.ACCESS_COARSE_LOCATION
+           Manifest.permission.ACCESS_COARSE_LOCATION
         ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
             context,
-            android.Manifest.permission.ACCESS_FINE_LOCATION
+            Manifest.permission.ACCESS_FINE_LOCATION
         ) != PackageManager.PERMISSION_GRANTED)
     }
 
     private fun makeRequest(context: Context) {
+        //make request for location permission if not granted
         ActivityCompat.requestPermissions(
             context as Activity,
             arrayOf(
-                android.Manifest.permission.ACCESS_FINE_LOCATION,
-                android.Manifest.permission.ACCESS_COARSE_LOCATION
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
             ),
             LOCATION_REQUEST_CODE
         )
     }
 
     fun showDialog(context: Context,titleText:String,subtitleText:String) {
-
+        //show dialog when permissions are not granted
         val dialog = Dialog(context)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         dialog.setCancelable(false)
@@ -89,13 +91,12 @@ class LocationPermission : AppCompatActivity() {
             }else{
                 makeRequest(context)
             }
-
         }
         dialog.show()
     }
 
     fun getLocation(context: Context) {
-
+       //get location of the device
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
         if (permissionIsGranted(context)) {
             if (isLocationEnabled(context)) {
@@ -107,27 +108,33 @@ class LocationPermission : AppCompatActivity() {
                         Manifest.permission.ACCESS_COARSE_LOCATION
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
+                    //make a request if the permission is not granted
                     makeRequest(context)
                     return
                 }
                 fusedLocationProviderClient.lastLocation.addOnCompleteListener {
+                    //get the last location of device
                     val location: Location? = it.result
                     if (location == null) {
                     } else {
+                        //sets the latitude && longitude
                         deviceLatitude = location.latitude
                         deviceLongitude = location.longitude
                     }
 
                 }
             } else {
+                //if the location is not enabled it shows the dialog
                 showDialog(context,context.resources.getString(R.string.dialog_location_title),"")
             }
         }else{
+            //if the permissions are not granted it makes a request again
             makeRequest(context)
         }
     }
 
     fun isLocationEnabled(context: Context) :Boolean{
+        //returns true if GPS_PROVIDER or NETWORK_PROVIDER is enabled, false otherwise
         locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
     }

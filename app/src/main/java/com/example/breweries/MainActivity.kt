@@ -2,8 +2,6 @@ package com.example.breweries
 
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.breweries.LocationPermission.Companion.LOCATION_REQUEST_CODE
@@ -40,6 +38,7 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
 
     override fun onResume() {
         if (locationPermission.permissionIsGranted(this)){
+            //only if location permission is granted it will show recyclerview with breweries and request location of device
             setupUi()
             locationPermission.getLocation(this)
         }
@@ -50,8 +49,10 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
         setRecyclerView()
 
         if (NetworkUtility.isOnline(this)) {
+            //make api call to get a list of breweries if is connected to the internet
             getAllBreweries(database)
         } else {
+            //get data stored in database and added to the list
             breweriesAdapter.breweries.toMutableList().clear()
             val data = database.readAllBreweries()
 
@@ -73,8 +74,10 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
             LOCATION_REQUEST_CODE -> {
 
                 if (grantResults.isEmpty() || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    //is permission is not granted , shows dialog to request permission
                     locationPermission.showDialog(this,this.resources.getString(R.string.dialog_title),this.resources.getString(R.string.dialog_subtitle))
                 } else {
+                    //is permissions are granted , get the device's location and set up the home page ui
                     locationPermission.getLocation(this)
                     setupUi()
                 }
@@ -86,10 +89,10 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
 
     private fun getAllBreweries(database: BreweryDBHelper) {
         CoroutineScope(Dispatchers.IO).launch {
-            val rss = NetworkUtility.request("/breweries")
+            val response = NetworkUtility.request("/breweries")
             withContext(Dispatchers.Main) {
                 // call to UI thread and parse response
-                handleJson(rss, database)
+                handleJson(response, database)
             }
         }
     }
@@ -121,6 +124,7 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
                 jsonObject.getString("created_at")
             )
             list.add(breweryObject)
+            //insert object to database
             database.insertBrewery(breweryObject)
             i++
         }
@@ -130,10 +134,10 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
     private fun getBreweriesByCity(city: String, database: BreweryDBHelper) {
 
         CoroutineScope(Dispatchers.IO).launch {
-            val rss = NetworkUtility.request("/breweries?by_city=$city")
+            val response = NetworkUtility.request("/breweries?by_city=$city")
             withContext(Dispatchers.Main) {
                 // call to UI thread and parse response
-                handleJson(rss, database)
+                handleJson(response, database)
             }
         }
     }
@@ -161,8 +165,9 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
                 getBreweriesByCity(
                     text,
                     database
-                ) //does the api request for objects searched by city
+                ) //does the api request for objects searched by city when online
             } else {
+                //reads data from database and add them to the list
                 val data = database.readBreweriesByCity(text)
                 breweriesAdapter.breweries = data.toList()
             }
@@ -172,8 +177,10 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
             //it shows all objects when the search view in empty
             breweriesAdapter.breweries.toMutableList().clear()
             if (NetworkUtility.isOnline(applicationContext)) {
+                //does the api request for all brewery objects when online
                 getAllBreweries(database)
             } else {
+                //reads data from database and add them to the list
                 val data = database.readAllBreweries()
                 breweriesAdapter.breweries = data.toList()
             }
