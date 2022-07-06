@@ -75,7 +75,7 @@ class BreweryDBHelper(context: Context) :
         values.put(COL_CREATED_AT, breweryObject.created_at)
 
         // Insert the new row, returning the primary key value of the new row
-        val newRowId = db.insert(TABLE_NAME, null, values)
+        val newRowId = db.replace(TABLE_NAME, null, values)
 
         return true
     }

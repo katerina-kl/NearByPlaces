@@ -3,6 +3,7 @@ package com.example.breweries
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.breweries.LocationPermission.Companion.LOCATION_REQUEST_CODE
@@ -36,9 +37,10 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
         locationPermission.setupPermissions(this)
         if (locationPermission.permissionIsGranted(this)){
             setupUi()
+            locationPermission.getLocation(this)
         }
-
     }
+
     private fun setupUi(){
         setRecyclerView()
 
