@@ -65,6 +65,7 @@ class LocationPermission : AppCompatActivity() {
     }
 
     fun showDialog(context: Context,titleText:String,subtitleText:String) {
+
         val dialog = Dialog(context)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         dialog.setCancelable(false)
@@ -81,12 +82,14 @@ class LocationPermission : AppCompatActivity() {
         val yesBtn = dialog.findViewById(R.id.button) as Button
         yesBtn.text = context.resources.getString(R.string.dialog_button)
         yesBtn.setOnClickListener {
+            dialog.dismiss()
             if (subtitleText == "") {
                 val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                 context.startActivity(intent)
+            }else{
+                makeRequest(context)
             }
-            dialog.dismiss()
-            makeRequest(context)
+
         }
         dialog.show()
     }
@@ -110,15 +113,9 @@ class LocationPermission : AppCompatActivity() {
                 fusedLocationProviderClient.lastLocation.addOnCompleteListener {
                     val location: Location? = it.result
                     if (location == null) {
-                        Toast.makeText(context, "null location", Toast.LENGTH_SHORT).show()
                     } else {
                         deviceLatitude = location.latitude
                         deviceLongitude = location.longitude
-                        Toast.makeText(
-                            context,
-                            "success location" + deviceLatitude + "  " + deviceLongitude,
-                            Toast.LENGTH_SHORT
-                        ).show()
                     }
 
                 }
