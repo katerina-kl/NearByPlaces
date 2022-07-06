@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Breweries</string>
     <string name="dialog_title">Location is required in order to find the nearest breweries!</string>
+    <string name="dialog_location_title">Location is required, please open settings</string>
     <string name="dialog_subtitle">Please click allow in the permission dialog</string>
     <string name="dialog_button">OK</string>
 </resources>

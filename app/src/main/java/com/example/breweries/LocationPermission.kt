@@ -9,6 +9,8 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.provider.Settings
+import android.view.View.GONE
+import android.view.View.VISIBLE
 import android.view.Window
 import android.widget.Button
 import android.widget.TextView
@@ -62,18 +64,27 @@ class LocationPermission : AppCompatActivity() {
         )
     }
 
-    fun showDialog(context: Context) {
+    fun showDialog(context: Context,titleText:String,subtitleText:String) {
         val dialog = Dialog(context)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         dialog.setCancelable(false)
         dialog.setContentView(R.layout.custom_dialog_layout)
         val title = dialog.findViewById(R.id.title) as TextView
-        title.text = context.resources.getString(R.string.dialog_title)
+        title.text = titleText
         val subtitle = dialog.findViewById(R.id.subtitle) as TextView
-        subtitle.text = context.resources.getString(R.string.dialog_subtitle)
+        subtitle.text = subtitleText
+        if (subtitleText == "") {
+            subtitle.visibility = GONE
+        } else {
+            subtitle.visibility = VISIBLE
+        }
         val yesBtn = dialog.findViewById(R.id.button) as Button
         yesBtn.text = context.resources.getString(R.string.dialog_button)
         yesBtn.setOnClickListener {
+            if (subtitleText == "") {
+                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                context.startActivity(intent)
+            }
             dialog.dismiss()
             makeRequest(context)
         }
@@ -112,9 +123,7 @@ class LocationPermission : AppCompatActivity() {
 
                 }
             } else {
-                Toast.makeText(context, "please enable location", Toast.LENGTH_SHORT).show()
-                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                context.startActivity(intent)
+                showDialog(context,context.resources.getString(R.string.dialog_location_title),"")
             }
         }else{
             makeRequest(context)

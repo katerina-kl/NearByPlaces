@@ -73,7 +73,7 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
             LOCATION_REQUEST_CODE -> {
 
                 if (grantResults.isEmpty() || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                    locationPermission.showDialog(this)
+                    locationPermission.showDialog(this,this.resources.getString(R.string.dialog_title),this.resources.getString(R.string.dialog_subtitle))
                 } else {
                     locationPermission.getLocation(this)
                     setupUi()
@@ -150,6 +150,9 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
 
     override fun onQueryTextChange(text: String?): Boolean {
 
+        if (!locationPermission.isLocationEnabled(this)){
+            locationPermission.getLocation(this)
+        }
         breweriesAdapter.breweries.toMutableList()
             .clear() // the list clears every time the user types
         val searchText = text!!.toLowerCase(Locale.getDefault())
