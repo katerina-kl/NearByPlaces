@@ -35,10 +35,15 @@ class MainActivity : AppCompatActivity(), androidx.appcompat.widget.SearchView.O
         database = BreweryDBHelper(this)
         locationPermission = LocationPermission()
         locationPermission.setupPermissions(this)
+
+    }
+
+    override fun onResume() {
         if (locationPermission.permissionIsGranted(this)){
             setupUi()
             locationPermission.getLocation(this)
         }
+        super.onResume()
     }
 
     private fun setupUi(){

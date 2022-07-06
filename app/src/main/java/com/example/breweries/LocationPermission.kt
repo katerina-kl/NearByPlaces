@@ -83,33 +83,41 @@ class LocationPermission : AppCompatActivity() {
     fun getLocation(context: Context) {
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
-        if (isLocationEnabled(context)){
-            if (ActivityCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                makeRequest(context)
-                return
-            }
-            fusedLocationProviderClient.lastLocation.addOnCompleteListener {
-                val location :Location? =it.result
-                if (location == null){
-                    Toast.makeText(context, "null location", Toast.LENGTH_SHORT).show()
-                }else{
-                    deviceLatitude =location.latitude
-                    deviceLongitude =location.longitude
-                    Toast.makeText(context, "success location"+ deviceLatitude + "  " + deviceLongitude, Toast.LENGTH_SHORT).show()
+        if (permissionIsGranted(context)) {
+            if (isLocationEnabled(context)) {
+                if (ActivityCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    makeRequest(context)
+                    return
                 }
+                fusedLocationProviderClient.lastLocation.addOnCompleteListener {
+                    val location: Location? = it.result
+                    if (location == null) {
+                        Toast.makeText(context, "null location", Toast.LENGTH_SHORT).show()
+                    } else {
+                        deviceLatitude = location.latitude
+                        deviceLongitude = location.longitude
+                        Toast.makeText(
+                            context,
+                            "success location" + deviceLatitude + "  " + deviceLongitude,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
 
+                }
+            } else {
+                Toast.makeText(context, "please enable location", Toast.LENGTH_SHORT).show()
+                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                context.startActivity(intent)
             }
         }else{
-            Toast.makeText(context, "please enable location", Toast.LENGTH_SHORT).show()
-            val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-            context.startActivity(intent)
+            makeRequest(context)
         }
     }
 
