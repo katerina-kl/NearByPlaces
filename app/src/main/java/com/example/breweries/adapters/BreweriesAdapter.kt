@@ -1,5 +1,6 @@
 package com.example.breweries.adapters
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.location.Location
 import android.view.LayoutInflater
@@ -14,7 +15,6 @@ import com.example.breweries.LocationPermission.Companion.deviceLatitude
 import com.example.breweries.LocationPermission.Companion.deviceLongitude
 import com.example.breweries.data.BreweryObject
 import com.example.breweries.databinding.BreweryLayoutBinding
-import com.google.gson.Gson
 
 class BreweriesAdapter : RecyclerView.Adapter<BreweriesAdapter.BreweriesViewHolder>() {
 
@@ -23,6 +23,7 @@ class BreweriesAdapter : RecyclerView.Adapter<BreweriesAdapter.BreweriesViewHold
     )
 
     private val diffCallback = object : DiffUtil.ItemCallback<BreweryObject>() {
+        @SuppressLint("DiffUtilEquals")
         override fun areContentsTheSame(oldItem: BreweryObject, newItem: BreweryObject): Boolean {
             return oldItem == newItem
         }
@@ -83,10 +84,14 @@ class BreweriesAdapter : RecyclerView.Adapter<BreweriesAdapter.BreweriesViewHold
                     GONE //i added this because some fields in some objects were null
             }
             holder.itemView.setOnClickListener {
-                val gson = Gson()
+                val passingObject = BreweryObject()
+                passingObject.name = brewery.name
+                passingObject.street = brewery.street
+                passingObject.city = brewery.city
+                passingObject.state = brewery.state
                 val intent = Intent(it.context, BreweryDetails::class.java)
                 //passes brewery object and distance text as calculated here to detail activity
-                intent.putExtra("brewery_object", gson.toJson(brewery))
+                intent.putExtra("brewery_object", passingObject)
                 intent.putExtra("distance", distance.text)
                 it.context.startActivity(intent)
             }

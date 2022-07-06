@@ -6,7 +6,6 @@ import android.view.View.VISIBLE
 import androidx.appcompat.app.AppCompatActivity
 import com.example.breweries.data.BreweryObject
 import com.example.breweries.databinding.ActivityBreweryDetailsBinding
-import com.google.gson.Gson
 
 class BreweryDetails : AppCompatActivity() {
     private lateinit var binding: ActivityBreweryDetailsBinding
@@ -16,11 +15,8 @@ class BreweryDetails : AppCompatActivity() {
         binding = ActivityBreweryDetailsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val gson = Gson()
-        val breweryObject = gson.fromJson<BreweryObject>(
-            intent.getStringExtra("brewery_object"),
-            BreweryObject::class.java
-        )
+        val breweryObject = intent.getSerializableExtra("brewery_object") as BreweryObject
+
         //just getting data from the previous activity
         if (breweryObject.name != "null") {
             binding.name.visibility = VISIBLE

@@ -88,6 +88,8 @@ class LocationPermission : AppCompatActivity() {
             if (subtitleText == "") {
                 val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                 context.startActivity(intent)
+                val activity =context as Activity
+                activity.finish()
             }else{
                 makeRequest(context)
             }
