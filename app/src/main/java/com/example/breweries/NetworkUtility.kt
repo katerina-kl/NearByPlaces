@@ -16,7 +16,6 @@ import kotlin.coroutines.resumeWithException
 class NetworkUtility {
 
     companion object {
-
         suspend fun request(endpoint: String): String {
             //makes a network request
             return suspendCancellableCoroutine { continuation ->
